@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Smart Rural Triage Station{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-tachometer-alt"></i> System Dashboard</h1>
+        <p class="text-muted">Real-time monitoring of the Smart Rural Triage Station</p>
+    </div>
+</div>
+
+<!-- System Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">System State</h5>
+                <h3 id="system-state" class="text-primary">{{ system_status.state }}</h3>
+                <small class="text-muted">Current operational state</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Uptime</h5>
+                <h3 id="system-uptime" class="text-success">{{ "%.0f"|format(system_status.uptime) }}s</h3>
+                <small class="text-muted">System running time</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Error Count</h5>
+                <h3 id="error-count" class="text-warning">{{ system_status.error_count }}</h3>
+                <small class="text-muted">Total system errors</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Last Heartbeat</h5>
+                <h3 id="last-heartbeat" class="text-info">
+                    {% if system_status.last_heartbeat %}
+                        {{ "%.1f"|format(system_status.last_heartbeat) }}s
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </h3>
+                <small class="text-muted">MCU communication</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Component Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-microchip"></i> Component Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator" id="serial-status"></span>
+                            <strong>Serial Manager</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator" id="camera-status"></span>
+                            <strong>Camera Manager</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator" id="audio-status"></span>
+                            <strong>Audio Manager</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="status-indicator" id="ml-status"></span>
+                            <strong>ML Engine</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sensor Data -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-thermometer-half"></i> Environmental Sensors</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h6>Temperature</h6>
+                            <div class="sensor-reading" id="temperature-reading">--°C</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h6>Distance</h6>
+                            <div class="sensor-reading" id="distance-reading">-- cm</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-running"></i> Motion & Position</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h6>Movement</h6>
+                            <div class="sensor-reading" id="movement-status">--</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h6>Mode Selection</h6>
+                            <div class="sensor-reading" id="mode-selection">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> Performance Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6>Total Examinations</h6>
+                            <div class="sensor-reading" id="total-examinations">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6>Successful</h6>
+                            <div class="sensor-reading text-success" id="successful-examinations">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6>Avg Inference Time</h6>
+                            <div class="sensor-reading" id="avg-inference-time">0.0s</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h6>Success Rate</h6>
+                            <div class="sensor-reading" id="success-rate">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('examination') }}" class="btn btn-primary btn-lg w-100 mb-2">
+                            <i class="fas fa-stethoscope"></i><br>
+                            Start Examination
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('results') }}" class="btn btn-info btn-lg w-100 mb-2">
+                            <i class="fas fa-chart-line"></i><br>
+                            View Results
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('calibration') }}" class="btn btn-warning btn-lg w-100 mb-2">
+                            <i class="fas fa-cogs"></i><br>
+                            Calibration
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-secondary btn-lg w-100 mb-2" onclick="refreshData()">
+                            <i class="fas fa-sync-alt"></i><br>
+                            Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Real-time data updates
+    socket.on('system_status_update', function(data) {
+        updateDashboard(data.data);
+    });
+    
+    function updateDashboard(systemStatus) {
+        // Update system state
+        document.getElementById('system-state').textContent = systemStatus.state || 'UNKNOWN';
+        document.getElementById('system-uptime').textContent = formatUptime(systemStatus.uptime || 0);
+        document.getElementById('error-count').textContent = systemStatus.error_count || 0;
+        
+        // Update last heartbeat
+        const heartbeatElement = document.getElementById('last-heartbeat');
+        if (systemStatus.last_heartbeat) {
+            const timeSince = Date.now() / 1000 - systemStatus.last_heartbeat;
+            heartbeatElement.textContent = timeSince.toFixed(1) + 's ago';
+        } else {
+            heartbeatElement.textContent = 'N/A';
+        }
+        
+        // Update component status
+        const componentStatus = systemStatus.component_status || {};
+        updateComponentStatus('serial-status', componentStatus.serial_manager);
+        updateComponentStatus('camera-status', componentStatus.camera_manager);
+        updateComponentStatus('audio-status', componentStatus.audio_manager);
+        updateComponentStatus('ml-status', componentStatus.inference_engine);
+        
+        // Update sensor data
+        const sensorData = systemStatus.latest_sensor_data || {};
+        updateSensorData(sensorData);
+        
+        // Update performance statistics
+        const perfStats = systemStatus.performance_stats || {};
+        updatePerformanceStats(perfStats);
+    }
+    
+    function updateComponentStatus(elementId, status) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.className = 'status-indicator ' + (status ? 'status-online' : 'status-offline');
+        }
+    }
+    
+    function updateSensorData(sensorData) {
+        // Temperature
+        const tempElement = document.getElementById('temperature-reading');
+        if (sensorData.temperature && sensorData.temperature.valid) {
+            tempElement.textContent = sensorData.temperature.celsius.toFixed(1) + '°C';
+            tempElement.className = 'sensor-reading text-success';
+        } else {
+            tempElement.textContent = '--°C';
+            tempElement.className = 'sensor-reading text-muted';
+        }
+        
+        // Distance
+        const distElement = document.getElementById('distance-reading');
+        if (sensorData.distance && sensorData.distance.valid) {
+            distElement.textContent = sensorData.distance.value_cm.toFixed(1) + ' cm';
+            distElement.className = 'sensor-reading ' + (sensorData.distance.in_range ? 'text-success' : 'text-warning');
+        } else {
+            distElement.textContent = '-- cm';
+            distElement.className = 'sensor-reading text-muted';
+        }
+        
+        // Movement
+        const movementElement = document.getElementById('movement-status');
+        if (sensorData.movement) {
+            movementElement.textContent = sensorData.movement.detected ? 'DETECTED' : 'CLEAR';
+            movementElement.className = 'sensor-reading ' + (sensorData.movement.detected ? 'text-warning' : 'text-success');
+        } else {
+            movementElement.textContent = '--';
+            movementElement.className = 'sensor-reading text-muted';
+        }
+        
+        // Mode selection
+        const modeElement = document.getElementById('mode-selection');
+        if (sensorData.knob) {
+            const modes = ['Heart', 'Lung', 'Calibration'];
+            const mode = modes[sensorData.knob.mode] || 'Unknown';
+            modeElement.textContent = mode;
+            modeElement.className = 'sensor-reading text-info';
+        } else {
+            modeElement.textContent = '--';
+            modeElement.className = 'sensor-reading text-muted';
+        }
+    }
+    
+    function updatePerformanceStats(perfStats) {
+        document.getElementById('total-examinations').textContent = perfStats.total_examinations || 0;
+        document.getElementById('successful-examinations').textContent = perfStats.successful_examinations || 0;
+        document.getElementById('avg-inference-time').textContent = (perfStats.average_inference_time || 0).toFixed(3) + 's';
+        
+        // Calculate success rate
+        const total = perfStats.total_examinations || 0;
+        const successful = perfStats.successful_examinations || 0;
+        const successRate = total > 0 ? ((successful / total) * 100).toFixed(1) : 0;
+        document.getElementById('success-rate').textContent = successRate + '%';
+    }
+    
+    function refreshData() {
+        socket.emit('request_status');
+        showAlert('Data refreshed', 'success');
+    }
+    
+    // Initial data load
+    socket.on('connect', function() {
+        socket.emit('request_status');
+    });
+    
+    // Auto-refresh every 30 seconds
+    setInterval(function() {
+        socket.emit('request_status');
+    }, 30000);
+</script>
+{% endblock %}

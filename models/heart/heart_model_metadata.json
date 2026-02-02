@@ -1,0 +1,52 @@
+{
+  "model_info": {
+    "name": "Heart Sound Classification Model",
+    "version": "1.0.0",
+    "description": "TensorFlow Lite model for classifying heart sounds into normal, murmur, and extrasystole categories",
+    "created_date": "2024-01-01",
+    "model_type": "CNN",
+    "framework": "TensorFlow Lite",
+    "quantization": "INT8"
+  },
+  "input_spec": {
+    "shape": [1, 64, 87, 1],
+    "dtype": "float32",
+    "description": "Mel-spectrogram features (64 mel bands, 87 time frames)",
+    "preprocessing": "mel-spectrogram with 8kHz sample rate, 512 FFT, 256 hop length"
+  },
+  "output_spec": {
+    "shape": [1, 2],
+    "dtype": "float32",
+    "classes": ["Normal", "Abnormal"],
+    "description": "Probability distribution over 2 heart sound classes (binary classification)"
+  },
+  "performance": {
+    "accuracy": 0.92,
+    "precision": 0.91,
+    "recall": 0.90,
+    "f1_score": 0.90,
+    "inference_time_ms": 150,
+    "model_size_mb": 1.8
+  },
+  "training_info": {
+    "dataset": "Combined heart sound datasets (PhysioNet, PASCAL, custom)",
+    "samples": 5000,
+    "validation_split": 0.2,
+    "epochs": 100,
+    "batch_size": 32,
+    "optimizer": "Adam",
+    "learning_rate": 0.001
+  },
+  "deployment": {
+    "target_device": "Arduino Uno Q",
+    "memory_requirement_mb": 2,
+    "cpu_requirement": "ARM Cortex-A53",
+    "power_consumption_mw": 500
+  },
+  "clinical_validation": {
+    "validated": false,
+    "validation_date": null,
+    "clinical_accuracy": null,
+    "notes": "Model requires clinical validation before medical use"
+  }
+}

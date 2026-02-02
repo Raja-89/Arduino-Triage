@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}Examination - Smart Rural Triage Station{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-stethoscope"></i> Medical Examination</h1>
+        <p class="text-muted">Conduct heart and lung sound analysis</p>
+    </div>
+</div>
+
+<!-- System Status Alert -->
+<div id="system-status-alert" class="alert alert-info" style="display: none;">
+    <i class="fas fa-info-circle"></i> <span id="status-message">System ready for examination</span>
+</div>
+
+<!-- Examination Controls -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="examination-controls">
+            <h4>Examination Control</h4>
+            
+            <!-- Mode Selection -->
+            <div class="mb-3">
+                <label class="form-label"><strong>Examination Mode:</strong></label>
+                <div class="btn-group w-100" role="group">
+                    <input type="radio" class="btn-check" name="exam-mode" id="mode-heart" value="heart" checked>
+                    <label class="btn btn-outline-primary" for="mode-heart">
+                        <i class="fas fa-heartbeat"></i> Heart Sounds
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="exam-mode" id="mode-lung" value="lung">
+                    <label class="btn btn-outline-primary" for="mode-lung">
+                        <i class="fas fa-lungs"></i> Lung Sounds
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="exam-mode" id="mode-both" value="both">
+                    <label class="btn btn-outline-primary" for="mode-both">
+                        <i class="fas fa-stethoscope"></i> Both
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                <button id="start-btn" class="btn btn-success btn-lg me-md-2" onclick="startExamination()">
+                    <i class="fas fa-play"></i> Start Examination
+                </button>
+                <button id="stop-btn" class="btn btn-danger btn-lg" onclick="stopExamination()" disabled>
+                    <i class="fas fa-stop"></i> Stop Examination
+                </button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progress-container" style="display: none;">
+                <h5>Examination Progress</h5>
+                <div class="progress mb-2">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <small id="progress-text">Preparing...</small>
+                    <small id="progress-time">0:00 / 0:08</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Patient Positioning Guide -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user-md"></i> Patient Positioning</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-user fa-3x text-muted"></i>
+                </div>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Patient seated comfortably</li>
+                    <li><i class="fas fa-check text-success"></i> Stethoscope positioned correctly</li>
+                    <li><i class="fas fa-check text-success"></i> Minimal background noise</li>
+                    <li><i class="fas fa-check text-success"></i> Patient breathing normally</li>
+                </ul>
+                
+                <div class="alert alert-warning mt-3">
+                    <small><i class="fas fa-exclamation-triangle"></i> 
+                    Ensure patient remains still during examination</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-time Sensor Feedback -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-crosshairs"></i> Positioning Feedback</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6>Distance</h6>
+                        <div id="position-distance" class="sensor-reading">-- cm</div>
+                        <small id="distance-status" class="text-muted">Position stethoscope</small>
+                    </div>
+                    <div class="col-6">
+                        <h6>Movement</h6>
+                        <div id="position-movement" class="sensor-reading">--</div>
+                        <small id="movement-status" class="text-muted">Keep patient still</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-volume-up"></i> Audio Quality</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6>Signal Level</h6>
+                        <div id="audio-level" class="sensor-reading">--</div>
+                        <small id="level-status" class="text-muted">Audio input level</small>
+                    </div>
+                    <div class="col-6">
+                        <h6>Quality</h6>
+                        <div id="audio-quality" class="sensor-reading">--</div>
+                        <small id="quality-status" class="text-muted">Signal quality</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Live Audio Visualization -->
+<div class="row mb-4" id="audio-visualization" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-waveform-lines"></i> Live Audio Waveform</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="waveform-canvas" width="800" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list-ol"></i> Examination Instructions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Before Starting:</h6>
+                        <ol>
+                            <li>Ensure patient is seated comfortably</li>
+                            <li>Select appropriate examination mode</li>
+                            <li>Position stethoscope correctly</li>
+                            <li>Check sensor readings are stable</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>During Examination:</h6>
+                        <ol>
+                            <li>Keep patient still and quiet</li>
+                            <li>Maintain steady stethoscope position</li>
+                            <li>Monitor progress indicators</li>
+                            <li>Wait for completion signal</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let examinationInProgress = false;
+    let progressInterval = null;
+    let startTime = null;
+    let duration = 8; // Default 8 seconds
+    
+    // Socket event handlers
+    socket.on('examination_started', function(data) {
+        if (data.success) {
+            onExaminationStarted(data.data);
+        } else {
+            showAlert('Failed to start examination: ' + (data.error || 'Unknown error'), 'danger');
+            resetExaminationControls();
+        }
+    });
+    
+    socket.on('examination_stopped', function(data) {
+        onExaminationStopped();
+        if (data.success) {
+            showAlert('Examination completed successfully', 'success');
+            // Redirect to results page after a delay
+            setTimeout(() => {
+                window.location.href = '/results';
+            }, 2000);
+        } else {
+            showAlert('Examination stopped with errors', 'warning');
+        }
+    });
+    
+    socket.on('system_status_update', function(data) {
+        updateSensorFeedback(data.data);
+        updateSystemStatus(data.data);
+    });
+    
+    function startExamination() {
+        const mode = document.querySelector('input[name="exam-mode"]:checked').value;
+        
+        // Validate system readiness
+        if (!validateSystemReadiness()) {
+            return;
+        }
+        
+        // Disable start button and enable stop button
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('stop-btn').disabled = false;
+        
+        // Show progress container
+        document.getElementById('progress-container').style.display = 'block';
+        document.getElementById('audio-visualization').style.display = 'block';
+        
+        // Emit start examination event
+        socket.emit('start_examination', { mode: mode });
+        
+        examinationInProgress = true;
+        startTime = Date.now();
+    }
+    
+    function stopExamination() {
+        socket.emit('stop_examination');
+        resetExaminationControls();
+    }
+    
+    function onExaminationStarted(data) {
+        duration = data.duration || 8;
+        showAlert('Examination started - Duration: ' + duration + ' seconds', 'info');
+        
+        // Start progress tracking
+        startProgressTracking();
+    }
+    
+    function onExaminationStopped() {
+        examinationInProgress = false;
+        resetExaminationControls();
+        
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+    }
+    
+    function resetExaminationControls() {
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('stop-btn').disabled = true;
+        document.getElementById('progress-container').style.display = 'none';
+        document.getElementById('audio-visualization').style.display = 'none';
+        
+        examinationInProgress = false;
+    }
+    
+    function startProgressTracking() {
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const progressTime = document.getElementById('progress-time');
+        
+        progressInterval = setInterval(() => {
+            if (!examinationInProgress || !startTime) {
+                return;
+            }
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+            
+            const elapsedMin = Math.floor(elapsed / 60);
+            const elapsedSec = Math.floor(elapsed % 60);
+            const totalMin = Math.floor(duration / 60);
+            const totalSec = Math.floor(duration % 60);
+            
+            progressTime.textContent = `${elapsedMin}:${elapsedSec.toString().padStart(2, '0')} / ${totalMin}:${totalSec.toString().padStart(2, '0')}`;
+            
+            if (progress < 25) {
+                progressText.textContent = 'Initializing...';
+            } else if (progress < 75) {
+                progressText.textContent = 'Recording audio...';
+            } else if (progress < 95) {
+                progressText.textContent = 'Processing...';
+            } else {
+                progressText.textContent = 'Completing...';
+            }
+            
+            if (progress >= 100) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }, 100);
+    }
+    
+    function validateSystemReadiness() {
+        // Check if system is in appropriate state
+        const systemState = document.getElementById('system-state');
+        if (systemState && systemState.textContent !== 'IDLE') {
+            showAlert('System must be in IDLE state to start examination', 'warning');
+            return false;
+        }
+        
+        // Additional validation could be added here
+        return true;
+    }
+    
+    function updateSensorFeedback(systemStatus) {
+        const sensorData = systemStatus.latest_sensor_data || {};
+        
+        // Update distance feedback
+        const distanceElement = document.getElementById('position-distance');
+        const distanceStatus = document.getElementById('distance-status');
+        
+        if (sensorData.distance && sensorData.distance.valid) {
+            const distance = sensorData.distance.value_cm;
+            distanceElement.textContent = distance.toFixed(1) + ' cm';
+            
+            if (sensorData.distance.in_range) {
+                distanceElement.className = 'sensor-reading text-success';
+                distanceStatus.textContent = 'Good position';
+                distanceStatus.className = 'text-success';
+            } else {
+                distanceElement.className = 'sensor-reading text-warning';
+                distanceStatus.textContent = 'Adjust position';
+                distanceStatus.className = 'text-warning';
+            }
+        } else {
+            distanceElement.textContent = '-- cm';
+            distanceElement.className = 'sensor-reading text-muted';
+            distanceStatus.textContent = 'Position stethoscope';
+            distanceStatus.className = 'text-muted';
+        }
+        
+        // Update movement feedback
+        const movementElement = document.getElementById('position-movement');
+        const movementStatus = document.getElementById('movement-status');
+        
+        if (sensorData.movement) {
+            if (sensorData.movement.detected) {
+                movementElement.textContent = 'DETECTED';
+                movementElement.className = 'sensor-reading text-warning';
+                movementStatus.textContent = 'Keep patient still';
+                movementStatus.className = 'text-warning';
+            } else {
+                movementElement.textContent = 'STABLE';
+                movementElement.className = 'sensor-reading text-success';
+                movementStatus.textContent = 'Patient stable';
+                movementStatus.className = 'text-success';
+            }
+        } else {
+            movementElement.textContent = '--';
+            movementElement.className = 'sensor-reading text-muted';
+            movementStatus.textContent = 'Keep patient still';
+            movementStatus.className = 'text-muted';
+        }
+    }
+    
+    function updateSystemStatus(systemStatus) {
+        const statusAlert = document.getElementById('system-status-alert');
+        const statusMessage = document.getElementById('status-message');
+        
+        if (systemStatus.state === 'EXAMINING') {
+            statusAlert.className = 'alert alert-info';
+            statusMessage.textContent = 'Examination in progress...';
+            statusAlert.style.display = 'block';
+        } else if (systemStatus.state === 'PROCESSING') {
+            statusAlert.className = 'alert alert-warning';
+            statusMessage.textContent = 'Processing audio data...';
+            statusAlert.style.display = 'block';
+        } else if (systemStatus.state === 'SHOWING_RESULTS') {
+            statusAlert.className = 'alert alert-success';
+            statusMessage.textContent = 'Examination complete - showing results';
+            statusAlert.style.display = 'block';
+        } else if (systemStatus.state === 'ERROR') {
+            statusAlert.className = 'alert alert-danger';
+            statusMessage.textContent = 'System error detected';
+            statusAlert.style.display = 'block';
+        } else {
+            statusAlert.style.display = 'none';
+        }
+    }
+    
+    // Initialize audio visualization (simplified)
+    function initializeAudioVisualization() {
+        const canvas = document.getElementById('waveform-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Simple waveform visualization placeholder
+        function drawWaveform() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            const centerY = canvas.height / 2;
+            const amplitude = 50;
+            const frequency = 0.02;
+            const time = Date.now() * 0.001;
+            
+            for (let x = 0; x < canvas.width; x++) {
+                const y = centerY + Math.sin((x + time * 100) * frequency) * amplitude * Math.random();
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            if (examinationInProgress) {
+                requestAnimationFrame(drawWaveform);
+            }
+        }
+        
+        // Start visualization when examination begins
+        socket.on('examination_started', function() {
+            drawWaveform();
+        });
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeAudioVisualization();
+        
+        // Request initial status
+        socket.emit('request_status');
+    });
+</script>
+{% endblock %}

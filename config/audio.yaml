@@ -1,0 +1,118 @@
+# Smart Rural Triage Station - Audio Configuration
+# ===============================================
+
+# Audio device settings
+device:
+  sample_rate: 8000
+  channels: 1
+  device_id: null  # Auto-detect best device
+  buffer_size: 8192
+  chunk_size: 1024
+
+# Audio preprocessing pipeline
+preprocessing:
+  # Filtering
+  highpass_freq: 20.0      # Remove very low frequencies
+  lowpass_freq: 2000.0     # Remove high-frequency noise
+  notch_freq: 50.0         # Remove power line noise (50Hz/60Hz)
+  notch_q: 30.0
+  
+  # Noise reduction
+  noise_reduction_enabled: true
+  noise_floor_percentile: 10.0
+  noise_reduction_factor: 0.5
+  
+  # Normalization
+  normalize_enabled: true
+  target_rms: 0.1
+  
+  # Quality enhancement
+  dynamic_range_compression: true
+  compression_ratio: 3.0
+  compression_threshold: 0.3
+  
+  # Artifact removal
+  remove_dc_offset: true
+  remove_clicks: true
+  click_threshold: 3.0
+
+# Feature extraction settings
+features:
+  # Spectrogram parameters
+  n_fft: 512
+  hop_length: 256
+  window: hann
+  
+  # Mel-spectrogram parameters
+  n_mels: 64
+  fmin: 20.0
+  fmax: null  # Nyquist frequency
+  
+  # MFCC parameters
+  n_mfcc: 13
+  dct_type: 2
+  norm: ortho
+  
+  # Feature flags
+  spectral_centroid: true
+  spectral_bandwidth: true
+  spectral_rolloff: true
+  zero_crossing_rate: true
+  rms_energy: true
+  peak_amplitude: true
+  crest_factor: true
+  heart_rate_features: true
+  respiratory_features: true
+
+# Medical audio analysis
+medical:
+  # Heart sound frequency bands (Hz)
+  heart_bands:
+    s1: [20, 200]      # S1 heart sound
+    s2: [50, 300]      # S2 heart sound
+    murmur: [100, 500] # Heart murmur
+  
+  # Lung sound frequency bands (Hz)
+  lung_bands:
+    normal: [100, 1000]    # Normal breathing
+    wheeze: [100, 800]     # Wheeze
+    crackle: [200, 2000]   # Crackle/rales
+  
+  # Analysis parameters
+  heart_rate_range: [40, 200]      # BPM
+  respiratory_rate_range: [8, 40]  # Breaths per minute
+
+# Audio quality assessment
+quality:
+  # Signal level thresholds
+  min_signal_level: -60.0  # dB
+  max_signal_level: -6.0   # dB
+  
+  # SNR thresholds
+  min_snr: 10.0           # dB
+  good_snr: 20.0          # dB
+  
+  # Clipping detection
+  clipping_threshold: 0.95
+  
+  # Silence detection
+  silence_threshold: 0.01
+
+# Calibration settings
+calibration:
+  # Reference tones for calibration (Hz)
+  calibration_frequencies: [100, 200, 400, 800, 1000, 1600, 2000]
+  tone_duration: 2.0
+  tone_amplitude: 0.5
+  
+  # Noise floor measurement
+  noise_measurement_duration: 5.0
+  noise_samples: 10
+  
+  # Sensitivity calibration
+  reference_level_db: -20.0
+  sensitivity_tolerance: 3.0
+  
+  # Frequency response
+  freq_response_points: 20
+  freq_response_tolerance: 6.0

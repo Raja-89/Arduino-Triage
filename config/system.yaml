@@ -1,0 +1,118 @@
+# Smart Rural Triage Station - System Configuration
+# ================================================
+
+# Logging configuration
+logging:
+  level: DEBUG
+  file: logs/system.log
+  max_size: 10MB
+  backup_count: 5
+
+# Hardware configuration
+hardware:
+  serial:
+    port: COM6
+    baud_rate: 115200
+    timeout: 1.0
+  
+  camera:
+    device_id: 0
+    width: 640
+    height: 480
+    fps: 30
+  
+  audio:
+    sample_rate: 8000
+    channels: 1
+    device_id: null  # Auto-detect
+    buffer_size: 8192
+
+# Audio processing configuration
+audio:
+  sample_rate: 8000
+  channels: 1
+  device_id: null
+  buffer_size: 8192
+  
+  # Preprocessing
+  preprocessing:
+    highpass_freq: 20.0
+    lowpass_freq: 2000.0
+    notch_freq: 50.0
+    noise_reduction_enabled: true
+    normalize_enabled: true
+  
+  # Feature extraction
+  features:
+    n_fft: 512
+    hop_length: 256
+    n_mels: 64
+    n_mfcc: 13
+
+# Machine Learning configuration
+# Machine Learning configuration
+ml:
+  heart_model_path: models/heart/heart_model.tflite
+  lung_model_path: models/lung/lung_model.tflite
+  yamnet_model_path: models/yamnet/yamnet_model.tflite
+  confidence_threshold: 0.7
+
+# Triage decision configuration
+triage:
+  thresholds:
+    ml_confidence: 0.7
+    temperature_fever: 38.0
+    heart_rate_high: 100
+    heart_rate_low: 50
+    respiratory_rate_high: 25
+    respiratory_rate_low: 10
+  
+  fusion_weights:
+    ml_prediction: 0.5
+    audio_analysis: 0.3
+    vital_signs: 0.2
+  
+  risk_factors: {}
+
+# Calibration configuration
+calibration:
+  audio_enabled: true
+  sensor_enabled: true
+  auto_interval: 3600  # 1 hour
+  
+  audio:
+    noise_measurement_duration: 5.0
+    noise_samples: 10
+    reference_level_db: -20.0
+    sensitivity_tolerance: 3.0
+
+# Web interface configuration
+web:
+  host: 0.0.0.0
+  port: 5000
+  debug: false
+
+# Examination configuration
+examination:
+  duration: 8.0  # seconds
+  result_display_time: 10.0  # seconds
+  
+  modes:
+    heart:
+      duration: 8.0
+      sample_rate: 8000
+    lung:
+      duration: 8.0
+      sample_rate: 8000
+    both:
+      duration: 12.0
+      sample_rate: 8000
+
+# System paths
+# Use relative paths for portability (runs from project root)
+paths:
+  base_dir: .
+  logs_dir: logs
+  models_dir: models
+  data_dir: data
+  config_dir: config

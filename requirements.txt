@@ -1,0 +1,59 @@
+# Smart Rural Triage Station - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core Scientific Computing
+numpy
+scipy
+scikit-learn
+pandas
+
+# Machine Learning
+tensorflow
+# tflite-runtime  # Optional on PC if tensorflow is installed
+
+# Audio Processing
+librosa
+sounddevice
+soundfile
+audiomentations
+watchdog
+pyaudio
+
+# Computer Vision
+opencv-python
+
+# Web Framework
+flask
+flask-socketio
+flask-cors
+
+# Serial Communication
+pyserial
+
+# Configuration and Data
+pyyaml
+python-dotenv
+h5py
+
+# Utilities
+requests
+tqdm
+python-dateutil
+
+# Visualization (for development/debugging)
+matplotlib
+seaborn
+
+# Testing
+pytest==7.4.0
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Logging and Monitoring
+colorlog==6.7.0
+psutil==5.9.5
+
+# Optional: For advanced features
+# redis==4.6.0  # For caching
+# celery==5.3.1  # For task queuing
+# prometheus-client==0.17.1  # For metrics
