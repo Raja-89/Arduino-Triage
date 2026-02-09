@@ -8,7 +8,6 @@
 
 **Privacy-First AI-Powered Medical Screening Device for Rural Healthcare**
 
-Built for Arduino x Qualcomm AI for All Hackathon 2025  
 *Empowering rural healthcare through privacy-first edge AI*
 
 ---
@@ -386,16 +385,6 @@ ssh root@10.42.0.1
 
 ---
 
-## Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Hardware Testing**: Test on different Arduino UNO Q setups
-2. **Model Training**: Improve AI models with new datasets
-3. **Documentation**: Enhance guides and tutorials
-4. **Bug Reports**: Report issues and suggest improvements
-5. **Feature Requests**: Propose new capabilities
-
 ### Development Setup
 ```bash
 # Clone repository
@@ -443,7 +432,6 @@ This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)** - se
 
 ## Acknowledgments
 
-- **Arduino x Qualcomm** for the AI for All Hackathon platform
 - **PhysioNet** and **ICBHI** for open medical datasets
 - **TensorFlow Lite** team for edge AI framework
 - **Open source community** for libraries and tools
