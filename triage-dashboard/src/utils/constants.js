@@ -19,10 +19,10 @@ export const LUNG_POSITIONS_ANTERIOR = [
 
 // Risk level colors
 export const RISK_COLORS = {
-  LOW: '#66BB6A',
-  MEDIUM: '#FFB74D',
-  HIGH: '#FF4C6A',
-  CRITICAL: '#BA68C8',
+  LOW: '#10B981',
+  MEDIUM: '#F59E0B',
+  HIGH: '#E11D48',
+  CRITICAL: '#7E22CE',
 };
 
 // System modes

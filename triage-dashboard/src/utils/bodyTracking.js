@@ -245,14 +245,14 @@ export function drawDetectionOverlay(ctx, bodyRegion) {
 
     if (bodyRegion.detected) {
         // Face rectangle
-        ctx.strokeStyle = 'rgba(30, 136, 229, 0.6)';
+        ctx.strokeStyle = 'rgba(13, 148, 136, 0.6)'; // Teal
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 4]);
         ctx.strokeRect(bodyRegion.faceX, bodyRegion.faceY, bodyRegion.faceW, bodyRegion.faceH);
         ctx.setLineDash([]);
 
         // Chest region outline
-        ctx.strokeStyle = 'rgba(0, 150, 136, 0.4)';
+        ctx.strokeStyle = 'rgba(13, 148, 136, 0.4)'; // Teal
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 4]);
         ctx.strokeRect(bodyRegion.chestX, bodyRegion.chestY, bodyRegion.chestW, bodyRegion.chestH);
@@ -272,7 +272,7 @@ export function drawDetectionOverlay(ctx, bodyRegion) {
     if (bodyRegion.hands && bodyRegion.hands.length > 0) {
         bodyRegion.hands.forEach((hand, idx) => {
             // Hand bounding box
-            ctx.strokeStyle = idx === 0 ? 'rgba(255, 152, 0, 0.8)' : 'rgba(233, 30, 99, 0.8)';
+            ctx.strokeStyle = 'rgba(13, 148, 136, 0.8)'; // Teal
             ctx.lineWidth = 2;
             ctx.setLineDash([4, 3]);
             ctx.strokeRect(hand.x, hand.y, hand.w, hand.h);
@@ -281,7 +281,7 @@ export function drawDetectionOverlay(ctx, bodyRegion) {
             // Hand center dot
             ctx.beginPath();
             ctx.arc(hand.centerX, hand.centerY, 6, 0, Math.PI * 2);
-            ctx.fillStyle = idx === 0 ? 'rgba(255, 152, 0, 0.6)' : 'rgba(233, 30, 99, 0.6)';
+            ctx.fillStyle = 'rgba(13, 148, 136, 0.6)';
             ctx.fill();
             ctx.strokeStyle = '#FFF';
             ctx.lineWidth = 1.5;
@@ -301,7 +301,7 @@ export function drawDetectionOverlay(ctx, bodyRegion) {
 
 // ── Draw auscultation target overlay ──────────────────────────
 
-export function drawTargetOverlay(ctx, targets, activeTargetId = null, bodyRegion = null) {
+export function drawTargetOverlay(ctx, targets, activeTargetId = null, bodyRegion = null, themeColor = '#111111') {
     // Get hand positions for proximity check
     const hands = bodyRegion?.hands || [];
 
@@ -325,23 +325,22 @@ export function drawTargetOverlay(ctx, targets, activeTargetId = null, bodyRegio
         if (isActive || handNear) {
             ctx.beginPath();
             ctx.arc(target.screenX, target.screenY, radius + 10, 0, Math.PI * 2);
-            ctx.strokeStyle = handNear
-                ? 'rgba(76, 175, 80, 0.5)'
-                : 'rgba(67, 160, 71, 0.3)';
+            ctx.strokeStyle = themeColor;
+            ctx.globalAlpha = handNear ? 0.5 : 0.3;
             ctx.lineWidth = handNear ? 3 : 2;
             ctx.stroke();
+            ctx.globalAlpha = 1.0;
         }
 
         // Solid circle fill
         ctx.beginPath();
         ctx.arc(target.screenX, target.screenY, radius, 0, Math.PI * 2);
-        ctx.fillStyle = handNear
-            ? 'rgba(76, 175, 80, 0.35)'
-            : isActive
-                ? 'rgba(67, 160, 71, 0.25)'
-                : 'rgba(0, 150, 136, 0.15)';
+        ctx.fillStyle = themeColor;
+        ctx.globalAlpha = handNear ? 0.35 : isActive ? 0.25 : 0.15;
         ctx.fill();
-        ctx.strokeStyle = handNear ? '#4CAF50' : isActive ? '#43A047' : '#009688';
+        ctx.globalAlpha = 1.0;
+
+        ctx.strokeStyle = themeColor;
         ctx.lineWidth = handNear ? 3 : isActive ? 3 : 2;
         ctx.stroke();
 
@@ -351,7 +350,7 @@ export function drawTargetOverlay(ctx, targets, activeTargetId = null, bodyRegio
         ctx.lineTo(target.screenX + 8, target.screenY);
         ctx.moveTo(target.screenX, target.screenY - 8);
         ctx.lineTo(target.screenX, target.screenY + 8);
-        ctx.strokeStyle = handNear ? '#4CAF50' : isActive ? '#43A047' : '#009688';
+        ctx.strokeStyle = themeColor;
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
@@ -359,20 +358,20 @@ export function drawTargetOverlay(ctx, targets, activeTargetId = null, bodyRegio
         ctx.font = 'bold 11px Inter, sans-serif';
         ctx.textAlign = 'center';
         const labelY = target.screenY + radius + 18;
-        const labelText = handNear ? `${target.label} ✓` : target.label;
+        const labelText = handNear ? `${target.label} (OK)` : target.label;
         const textWidth = ctx.measureText(labelText).width;
-        ctx.fillStyle = handNear ? 'rgba(76, 175, 80, 0.85)' : 'rgba(0, 0, 0, 0.75)';
+        ctx.fillStyle = handNear ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(target.screenX - textWidth / 2 - 6, labelY - 11, textWidth + 12, 16);
 
         // Label text
         ctx.fillStyle = '#FFFFFF';
         ctx.fillText(labelText, target.screenX, labelY);
 
-        // Tracking indicator (small green dot)
+        // Tracking indicator (small dot)
         if (target.tracked) {
             ctx.beginPath();
             ctx.arc(target.screenX + radius - 2, target.screenY - radius + 2, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#43A047';
+            ctx.fillStyle = themeColor;
             ctx.fill();
         }
     });

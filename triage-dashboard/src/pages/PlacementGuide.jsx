@@ -73,7 +73,8 @@ export default function PlacementGuide() {
 
             // Map and draw auscultation targets
             const targets = mapTargetPositions(lastDetection.current, canvas.width, canvas.height, activeTab);
-            drawTargetOverlay(ctx, targets, activeTarget, lastDetection.current);
+            const themeColor = activeTab === 'heart' ? '#E11D48' : '#0EA5E9';
+            drawTargetOverlay(ctx, targets, activeTarget, lastDetection.current, themeColor);
 
             // Update placement feedback based on detection state
             if (lastDetection.current) {
@@ -134,7 +135,7 @@ export default function PlacementGuide() {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1><Target size={28} style={{ color: 'var(--accent-teal)', verticalAlign: 'middle', marginRight: 10 }} />Stethoscope Placement Guide</h1>
+                <h1><Target size={28} style={{ color: 'var(--text-primary)', verticalAlign: 'middle', marginRight: 10 }} />Stethoscope Placement Guide</h1>
                 <p>Camera-guided positioning with real-time body tracking for accurate auscultation</p>
             </div>
 
@@ -143,7 +144,7 @@ export default function PlacementGuide() {
                 <button
                     className={`tab ${activeTab === 'heart' ? 'active' : ''}`}
                     onClick={() => setActiveTab('heart')}
-                    style={activeTab === 'heart' ? { color: 'var(--cardiac-red)' } : {}}
+                    style={activeTab === 'heart' ? { background: 'var(--cardiac-red)', color: '#fff', borderColor: 'var(--cardiac-red)' } : {}}
                 >
                     <HeartPulse size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                     Heart Points
@@ -151,7 +152,7 @@ export default function PlacementGuide() {
                 <button
                     className={`tab ${activeTab === 'lung' ? 'active' : ''}`}
                     onClick={() => setActiveTab('lung')}
-                    style={activeTab === 'lung' ? { color: 'var(--respiratory-blue)' } : {}}
+                    style={activeTab === 'lung' ? { background: 'var(--respiratory-blue)', color: '#fff', borderColor: 'var(--respiratory-blue)' } : {}}
                 >
                     <Wind size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                     Lung Points

@@ -1,29 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApi, apiPost } from '../hooks/useApi';
 import {
     HeartPulse, Play, Square, RotateCcw, CheckCircle,
     AlertTriangle, XCircle, Info, Stethoscope, Radio
 } from 'lucide-react';
+import ExamModal from '../components/ExamModal';
 
 export default function HeartExam({ status }) {
-    const { data: sensorData } = useApi('/sensor-data', 1000);
+
     const { data: systemStatus, refetch: refetchStatus } = useApi('/status', 500);
     const [examState, setExamState] = useState('idle'); // idle, examining, result
     const [result, setResult] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Track previous mode to detect transitions
+    const prevModeRef = useRef(status?.mode);
 
     useEffect(() => {
-        if (systemStatus?.mode === 'EXAMINING') {
+        const currentMode = systemStatus?.mode;
+        const prevMode = prevModeRef.current;
+
+        if (currentMode === 'EXAMINING' && prevMode !== 'EXAMINING') {
+            // Started new exam
             setExamState('examining');
-        } else if (systemStatus?.mode === 'RESULT' && systemStatus?.examResult) {
+            setResult(null);
+            setIsModalOpen(true);
+        } else if (currentMode === 'RESULT' && prevMode === 'EXAMINING') {
+            // Transitioned from Examining -> Result (Completion)
+            setExamState('result');
+            setResult(systemStatus.examResult);
+            setIsModalOpen(true);
+        } else if (currentMode === 'RESULT' && !result && systemStatus?.examResult) {
+            // Just loaded page and already have result (don't open modal, just show result)
             setExamState('result');
             setResult(systemStatus.examResult);
         }
+
+        prevModeRef.current = currentMode;
     }, [systemStatus]);
 
     const startExam = async () => {
         await apiPost('/exam/start', { type: 'heart' });
         setExamState('examining');
         setResult(null);
+        setIsModalOpen(true);
     };
 
     const stopExam = async () => {
@@ -55,9 +75,37 @@ export default function HeartExam({ status }) {
                 <p>Cardiac auscultation with AI-powered heart sound classification</p>
             </div>
 
+            {/* Exam Modal */}
+            <ExamModal
+                isOpen={examState === 'examining' || (examState === 'result' && !result)}
+                mode={examState === 'examining' ? 'EXAMINING' : 'RESULT'}
+                onClose={() => setExamState('idle')} // Allow closing to browse (exam continues in bg)
+                onViewResults={() => {
+                    // Stay on page but show results (state is already 'result')
+                    // The modal will close naturally if we just render the result view
+                    // But effectively we want to just close the modal to see the underlying result view
+                    // actually, the requirement says "navigates to the result window". 
+                    // Since we are already on the exam page which shows results, we just close the modal.
+                    // However, let's make sure the modal only shows when necessary.
+                }}
+            />
+
+            {/* We need to adjust the Logic. 
+               The user wants: 
+               1. Start -> Popup "Check Hardware" (Close button available).
+               2. Hardware finishes -> Popup "Generic Complete" -> Click "View Results" -> Shows Result.
+            */}
+
+            <ExamModal
+                isOpen={isModalOpen}
+                mode={examState === 'examining' ? 'EXAMINING' : 'RESULT'}
+                onClose={() => setIsModalOpen(false)}
+                onViewResults={() => setIsModalOpen(false)}
+            />
+
             <div className="grid-2">
-                {/* Exam Control */}
-                <div className="card">
+                {/* Exam Control (Full Width now?) or keep 2 columns but remove Live Readings */}
+                <div className="card" style={{ gridColumn: '1 / -1' }}>
                     <div className="card-header">
                         <h3 className="card-title"><HeartPulse size={16} color="var(--cardiac-red)" style={{ marginRight: 6 }} />Examination Control</h3>
                         <span className={`risk-badge ${examState === 'examining' ? 'high' : examState === 'result' ? 'low' : 'medium'}`}>
@@ -70,7 +118,7 @@ export default function HeartExam({ status }) {
                             <div className="exam-flow">
                                 <div style={{
                                     width: 100, height: 100, borderRadius: '50%',
-                                    background: 'var(--cardiac-red-glow)', display: 'flex',
+                                    background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', display: 'flex',
                                     alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
                                 }}>
                                     <HeartPulse size={48} color="var(--cardiac-red)" className="heartbeat" />
@@ -90,25 +138,21 @@ export default function HeartExam({ status }) {
                             <div className="exam-flow">
                                 <div style={{
                                     width: 120, height: 120, borderRadius: '50%',
-                                    background: 'var(--cardiac-red-glow)', display: 'flex',
+                                    background: 'var(--bg-elevated)', border: '1px solid var(--cardiac-red)', display: 'flex',
                                     alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-                                    boxShadow: '0 0 40px rgba(255, 76, 106, 0.3)',
                                 }}>
                                     <HeartPulse size={56} color="var(--cardiac-red)" className="heartbeat" />
                                 </div>
                                 <h3 className="exam-status" style={{ color: 'var(--cardiac-red)' }}>Recording Heart Sounds...</h3>
                                 <p className="exam-progress-text">
-                                    Keep the patient still. Recording audio for analysis.
+                                    <strong>Check Hardware Display</strong> for signal monitoring.
                                 </p>
                                 <div className="progress-bar" style={{ maxWidth: 400, margin: '0 auto 20px' }}>
                                     <div className="progress-fill" style={{
                                         width: `${systemStatus?.examProgress || 0}%`,
-                                        background: 'linear-gradient(90deg, var(--cardiac-red), var(--cardiac-red-dim))',
+                                        background: 'var(--cardiac-red)',
                                     }} />
                                 </div>
-                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    {systemStatus?.examProgress || 0}% complete
-                                </p>
                                 <button className="btn btn-secondary" onClick={stopExam} style={{ marginTop: 12 }}>
                                     <Square size={16} /> Stop Examination
                                 </button>
@@ -120,10 +164,10 @@ export default function HeartExam({ status }) {
                                 <div className="exam-flow" style={{ paddingBottom: 16 }}>
                                     <div style={{
                                         width: 80, height: 80, borderRadius: '50%',
-                                        background: result.riskLevel === 'LOW' ? 'var(--success-green-glow)' : 'var(--cardiac-red-glow)',
+                                        background: 'transparent', border: '2px solid var(--text-primary)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
                                     }}>
-                                        {getRiskIcon(result.riskLevel)}
+                                        <HeartPulse size={40} color={result.riskLevel === 'LOW' ? 'var(--success-green)' : 'var(--cardiac-red)'} />
                                     </div>
                                     <h3 className="exam-status">{result.diagnosis}</h3>
                                     <span className={`risk-badge ${result.riskLevel.toLowerCase()}`} style={{ marginTop: 8 }}>
@@ -132,7 +176,6 @@ export default function HeartExam({ status }) {
                                     </span>
                                 </div>
 
-                                {/* Classification breakdown */}
                                 <div className="result-panel">
                                     <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 12 }}>Classification Results</h4>
                                     {result.details?.heartClassification && Object.entries(result.details.heartClassification).map(([cls, conf]) => (
@@ -151,7 +194,6 @@ export default function HeartExam({ status }) {
                                     ))}
                                 </div>
 
-                                {/* Explanation */}
                                 <div className="result-panel" style={{ marginTop: 12 }}>
                                     <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 8 }}>
                                         <Info size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -180,71 +222,27 @@ export default function HeartExam({ status }) {
                     </div>
                 </div>
 
-                {/* Live Readings */}
-                <div>
-                    <div className="card" style={{ marginBottom: 20 }}>
-                        <div className="card-header">
-                            <h3 className="card-title"><Radio size={16} style={{ marginRight: 6 }} />Live Readings</h3>
-                        </div>
-                        <div className="card-body">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div className="sensor-card red">
-                                    <div className="sensor-header">
-                                        <span className="sensor-name">Heart Rate</span>
-                                        <HeartPulse size={16} color="var(--cardiac-red)" />
-                                    </div>
-                                    <div className="sensor-value">{sensorData?.heartRate || '--'} <span className="sensor-unit">BPM</span></div>
-                                    <div className="sensor-bar">
-                                        <div className="sensor-bar-fill" style={{
-                                            width: `${Math.min(((sensorData?.heartRate || 60) - 40) / 120 * 100, 100)}%`,
-                                            background: 'var(--cardiac-red)',
-                                        }} />
-                                    </div>
-                                </div>
-                                <div className="sensor-card amber">
-                                    <div className="sensor-header">
-                                        <span className="sensor-name">Temperature</span>
-                                    </div>
-                                    <div className="sensor-value">{sensorData?.temperature || '--'}<span className="sensor-unit">°C</span></div>
-                                </div>
-                                <div className="sensor-card teal">
-                                    <div className="sensor-header">
-                                        <span className="sensor-name">Audio Level</span>
-                                    </div>
-                                    <div className="sensor-value">{sensorData?.audioLevel || '0'}<span className="sensor-unit"> dB</span></div>
-                                    <div className="sensor-bar">
-                                        <div className="sensor-bar-fill" style={{
-                                            width: `${Math.min((sensorData?.audioLevel || 0) / 60 * 100, 100)}%`,
-                                            background: 'var(--accent-teal)',
-                                        }} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                {/* Positioning Guide (Full Width or Side?) --> Keep logical flow, maybe just put it below */}
+                <div className="card" style={{ gridColumn: '1 / -1' }}>
+                    <div className="card-header">
+                        <h3 className="card-title"><Stethoscope size={16} style={{ marginRight: 6 }} />Heart Auscultation Points</h3>
                     </div>
-
-                    {/* Positioning Guide */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h3 className="card-title"><Stethoscope size={16} style={{ marginRight: 6 }} />Heart Auscultation Points</h3>
-                        </div>
-                        <div className="card-body" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {[
-                                    { name: 'Aortic', desc: '2nd right intercostal space' },
-                                    { name: 'Pulmonic', desc: '2nd left intercostal space' },
-                                    { name: "Erb's Point", desc: '3rd left intercostal space' },
-                                    { name: 'Tricuspid', desc: '4th left intercostal space' },
-                                    { name: 'Mitral (Apex)', desc: '5th intercostal space, midclavicular' },
-                                ].map((p, i) => (
-                                    <div key={i} style={{
-                                        padding: '8px 12px', background: 'var(--bg-elevated)',
-                                        borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--cardiac-red)',
-                                    }}>
-                                        <strong style={{ color: 'var(--text-primary)' }}>{p.name}</strong> — {p.desc}
-                                    </div>
-                                ))}
-                            </div>
+                    <div className="card-body" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                            {[
+                                { name: 'Aortic', desc: '2nd right intercostal space' },
+                                { name: 'Pulmonic', desc: '2nd left intercostal space' },
+                                { name: "Erb's Point", desc: '3rd left intercostal space' },
+                                { name: 'Tricuspid', desc: '4th left intercostal space' },
+                                { name: 'Mitral (Apex)', desc: '5th intercostal space, midclavicular' },
+                            ].map((p, i) => (
+                                <div key={i} style={{
+                                    padding: '8px 12px', background: 'var(--bg-elevated)',
+                                    borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--text-primary)',
+                                }}>
+                                    <strong style={{ color: 'var(--text-primary)' }}>{p.name}</strong><br />{p.desc}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -252,3 +250,4 @@ export default function HeartExam({ status }) {
         </div>
     );
 }
+

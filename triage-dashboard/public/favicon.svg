@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-width="5"/>
-  <rect x="24" y="12" width="16" height="40" rx="3" fill="#4FC3F7"/>
-  <rect x="12" y="24" width="40" height="16" rx="3" fill="#4FC3F7"/>
+  <!-- White Outline/Glow for contrast on black bg -->
+  <path d="M22 9h18v16h16v18h-16v16h-18v-16h-16v-18h16z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Main Blue Cross -->
+  <path d="M24 11h16v16h16v16h-16v16h-16v-16h-16v-16h16z" fill="#0EA5E9"/>
 </svg>

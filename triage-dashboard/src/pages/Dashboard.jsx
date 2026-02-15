@@ -6,7 +6,7 @@ import {
     Hospital, BarChart3, Microscope, ClipboardList, TrendingUp,
     Brain, Cpu, CheckCircle
 } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useState, useEffect } from 'react';
 
 export default function Dashboard({ status }) {
@@ -14,36 +14,14 @@ export default function Dashboard({ status }) {
     const { data: history } = useApi('/triage/history');
     const { data: models } = useApi('/models');
     const navigate = useNavigate();
-    const [waveData, setWaveData] = useState([]);
 
-    // Live waveform data — uses real sensor data when available
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setWaveData(prev => {
-                const now = Date.now();
-                // Use real heart rate from hardware if available, else simulate
-                const hr = sensorData?.heartRate || 72;
-                const baseHeart = hr + Math.sin(now / 300) * 8 + Math.random() * 3;
-                const baseLung = (sensorData?.respiratoryRate || 16) + Math.sin(now / 500) * 4 + Math.random() * 2;
-                const newPoint = {
-                    time: now,
-                    heart: baseHeart,
-                    lung: baseLung,
-                    audio: sensorData?.audioLevel ?? Math.random() * 40,
-                };
-                const updated = [...prev, newPoint].slice(-40);
-                return updated;
-            });
-        }, 200);
-        return () => clearInterval(interval);
-    }, [sensorData]);
 
     const recentTriages = history?.slice(0, 5) || [];
 
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1><Hospital size={28} style={{ verticalAlign: 'middle', marginRight: 10, color: 'var(--accent-teal)' }} />Triage Dashboard</h1>
+                <h1><Hospital size={28} style={{ verticalAlign: 'middle', marginRight: 10 }} />Triage Dashboard</h1>
                 <p>Real-time monitoring and quick-start examinations</p>
             </div>
 
@@ -84,7 +62,7 @@ export default function Dashboard({ status }) {
                 {/* Quick Actions */}
                 <div className="card">
                     <div className="card-header">
-                        <h3 className="card-title"><Zap size={16} style={{ marginRight: 6, color: 'var(--warning-amber)' }} />Quick Start Examination</h3>
+                        <h3 className="card-title"><Zap size={16} style={{ marginRight: 6 }} />Quick Start Examination</h3>
                     </div>
                     <div className="card-body">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -129,110 +107,7 @@ export default function Dashboard({ status }) {
                     </div>
                 </div>
 
-                {/* Live Waveform */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title"><BarChart3 size={16} style={{ marginRight: 6, color: 'var(--accent-teal)' }} />Live Signal Monitor</h3>
-                        <div className="status-indicator" style={{ fontSize: '0.75rem' }}>
-                            <div className="status-dot" /> Live
-                        </div>
-                    </div>
-                    <div className="card-body" style={{ height: 200 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={waveData}>
-                                <defs>
-                                    <linearGradient id="heartGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#FF4C6A" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#FF4C6A" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="lungGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#4FC3F7" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#4FC3F7" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="time" hide />
-                                <YAxis hide domain={[0, 100]} />
-                                <Tooltip
-                                    contentStyle={{
-                                        background: 'var(--bg-secondary)', border: '1px solid var(--border-default)',
-                                        borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--text-primary)'
-                                    }}
-                                    labelFormatter={() => ''}
-                                />
-                                <Area type="monotone" dataKey="heart" stroke="#FF4C6A" fill="url(#heartGradient)" strokeWidth={2} dot={false} name="Heart" />
-                                <Area type="monotone" dataKey="lung" stroke="#4FC3F7" fill="url(#lungGradient)" strokeWidth={2} dot={false} name="Lung" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            {/* Sensor Details + Recent Triages */}
-            <div className="grid-2">
-                {/* Sensor Cards */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title"><Microscope size={16} style={{ marginRight: 6, color: 'var(--accent-teal)' }} />Sensor Readings</h3>
-                    </div>
-                    <div className="card-body">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                            <div className="sensor-card amber">
-                                <div className="sensor-header">
-                                    <span className="sensor-name">Temperature</span>
-                                    <Thermometer size={16} color="var(--warning-amber)" />
-                                </div>
-                                <div className="sensor-value">{sensorData?.temperature || '--'}<span className="sensor-unit">°C</span></div>
-                                <div className="sensor-bar">
-                                    <div className="sensor-bar-fill" style={{
-                                        width: `${((sensorData?.temperature || 36) - 35) / 5 * 100}%`,
-                                        background: (sensorData?.temperature || 36) > 38 ? 'var(--cardiac-red)' : 'var(--warning-amber)',
-                                    }} />
-                                </div>
-                            </div>
-                            <div className="sensor-card teal">
-                                <div className="sensor-header">
-                                    <span className="sensor-name">Audio Level</span>
-                                    <Volume2 size={16} color="var(--accent-teal)" />
-                                </div>
-                                <div className="sensor-value">{sensorData?.audioLevel || '0'}<span className="sensor-unit"> dB</span></div>
-                                <div className="sensor-bar">
-                                    <div className="sensor-bar-fill" style={{
-                                        width: `${Math.min((sensorData?.audioLevel || 0) / 60 * 100, 100)}%`,
-                                        background: 'var(--accent-teal)',
-                                    }} />
-                                </div>
-                            </div>
-                            <div className="sensor-card blue">
-                                <div className="sensor-header">
-                                    <span className="sensor-name">SpO₂</span>
-                                    <Zap size={16} color="var(--respiratory-blue)" />
-                                </div>
-                                <div className="sensor-value">{sensorData?.spO2 || '--'}<span className="sensor-unit">%</span></div>
-                                <div className="sensor-bar">
-                                    <div className="sensor-bar-fill" style={{
-                                        width: `${(sensorData?.spO2 || 96)}%`,
-                                        background: 'var(--respiratory-blue)',
-                                    }} />
-                                </div>
-                            </div>
-                            <div className="sensor-card red">
-                                <div className="sensor-header">
-                                    <span className="sensor-name">Movement</span>
-                                    <Move size={16} color="var(--cardiac-red)" />
-                                </div>
-                                <div className="sensor-value">{sensorData?.movement ? 'Detected' : 'Stable'}</div>
-                                <div className="sensor-bar">
-                                    <div className="sensor-bar-fill" style={{
-                                        width: sensorData?.movement ? '80%' : '10%',
-                                        background: sensorData?.movement ? 'var(--cardiac-red)' : 'var(--success-green)',
-                                    }} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Recent Triages */}
+                {/* Recent Triages (Moves to 2nd column) */}
                 <div className="card">
                     <div className="card-header">
                         <h3 className="card-title"><ClipboardList size={16} style={{ marginRight: 6, color: 'var(--accent-teal)' }} />Recent Triage Results</h3>
@@ -240,26 +115,26 @@ export default function Dashboard({ status }) {
                     </div>
                     <div className="card-body">
                         {recentTriages.length === 0 ? (
-                            <div className="empty-state" style={{ padding: '30px 10px' }}>
-                                <p>No triage results yet</p>
+                            <div className="empty-state">
+                                <p>No recent triage records found.</p>
+                                <button className="btn btn-primary btn-sm" onClick={() => navigate('/heart-exam')} style={{ marginTop: 12 }}>
+                                    Start New Exam
+                                </button>
                             </div>
                         ) : (
-                            <div className="timeline">
-                                {recentTriages.map(triage => (
-                                    <div
-                                        key={triage.id}
-                                        className={`timeline-item ${triage.riskLevel.toLowerCase()}`}
-                                        onClick={() => navigate('/results')}
-                                    >
-                                        <div className="timeline-time">{new Date(triage.timestamp).toLocaleString()}</div>
-                                        <div className="timeline-title">
-                                            {triage.type === 'heart' ? <HeartPulse size={14} color="var(--cardiac-red)" style={{ marginRight: 4, verticalAlign: 'middle' }} /> : <Wind size={14} color="var(--respiratory-blue)" style={{ marginRight: 4, verticalAlign: 'middle' }} />} {triage.diagnosis}
-                                            <span className={`risk-badge ${triage.riskLevel.toLowerCase()}`} style={{ marginLeft: 8 }}>
-                                                <span className="badge-dot" />
-                                                {triage.riskLevel}
-                                            </span>
+                            <div className="triage-list" style={{ maxHeight: 280, overflowY: 'auto' }}>
+                                {recentTriages.map((triage) => (
+                                    <div key={triage.id} className="triage-item" onClick={() => navigate(`/results/${triage.id}`)}>
+                                        <div className="triage-icon">
+                                            {triage.type === 'heart' ? <HeartPulse size={20} color="var(--cardiac-red)" /> : <Wind size={20} color="var(--respiratory-blue)" />}
                                         </div>
-                                        <div className="timeline-desc">Confidence: {(triage.confidence * 100).toFixed(0)}%</div>
+                                        <div className="triage-details">
+                                            <div className="triage-diagnosis">{triage.diagnosis}</div>
+                                            <div className="triage-date">{new Date(triage.timestamp).toLocaleString()}</div>
+                                        </div>
+                                        <div className={`risk-badge ${triage.riskLevel.toLowerCase()}`}>
+                                            {triage.riskLevel}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

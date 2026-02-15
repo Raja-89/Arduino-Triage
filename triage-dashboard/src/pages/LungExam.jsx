@@ -1,29 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApi, apiPost } from '../hooks/useApi';
 import {
     Wind, Play, Square, RotateCcw, CheckCircle,
     AlertTriangle, XCircle, Info, Stethoscope, Radio
 } from 'lucide-react';
+import ExamModal from '../components/ExamModal';
 
 export default function LungExam({ status }) {
-    const { data: sensorData } = useApi('/sensor-data', 1000);
+
     const { data: systemStatus, refetch: refetchStatus } = useApi('/status', 500);
     const [examState, setExamState] = useState('idle');
     const [result, setResult] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Track previous mode to detect transitions
+    const prevModeRef = useRef(status?.mode);
 
     useEffect(() => {
-        if (systemStatus?.mode === 'EXAMINING') {
+        const currentMode = systemStatus?.mode;
+        const prevMode = prevModeRef.current;
+
+        if (currentMode === 'EXAMINING' && prevMode !== 'EXAMINING') {
+            // Started new exam
             setExamState('examining');
-        } else if (systemStatus?.mode === 'RESULT' && systemStatus?.examResult) {
+            setResult(null);
+            setIsModalOpen(true);
+        } else if (currentMode === 'RESULT' && prevMode === 'EXAMINING') {
+            // Transitioned from Examining -> Result
+            setExamState('result');
+            setResult(systemStatus.examResult);
+            setIsModalOpen(true);
+        } else if (currentMode === 'RESULT' && !result && systemStatus?.examResult) {
+            // Just loaded page with existing result
             setExamState('result');
             setResult(systemStatus.examResult);
         }
+
+        prevModeRef.current = currentMode;
     }, [systemStatus]);
 
     const startExam = async () => {
         await apiPost('/exam/start', { type: 'lung' });
         setExamState('examining');
         setResult(null);
+        setIsModalOpen(true);
     };
 
     const stopExam = async () => {
@@ -62,9 +82,17 @@ export default function LungExam({ status }) {
                 <p>Respiratory auscultation with AI-powered lung sound classification</p>
             </div>
 
+            {/* Exam Modal */}
+            <ExamModal
+                isOpen={isModalOpen}
+                mode={examState === 'examining' ? 'EXAMINING' : 'RESULT'}
+                onClose={() => setIsModalOpen(false)}
+                onViewResults={() => setIsModalOpen(false)}
+            />
+
             <div className="grid-2">
                 {/* Exam Control */}
-                <div className="card">
+                <div className="card" style={{ gridColumn: '1 / -1' }}>
                     <div className="card-header">
                         <h3 className="card-title"><Wind size={16} color="var(--respiratory-blue)" style={{ marginRight: 6 }} />Examination Control</h3>
                         <span className={`risk-badge ${examState === 'examining' ? 'high' : examState === 'result' ? 'low' : 'medium'}`}>
@@ -77,7 +105,7 @@ export default function LungExam({ status }) {
                             <div className="exam-flow">
                                 <div style={{
                                     width: 100, height: 100, borderRadius: '50%',
-                                    background: 'var(--respiratory-blue-glow)', display: 'flex',
+                                    background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', display: 'flex',
                                     alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
                                 }}>
                                     <Wind size={48} color="var(--respiratory-blue)" className="breathe" />
@@ -91,9 +119,8 @@ export default function LungExam({ status }) {
                                     onClick={startExam}
                                     disabled={status?.mode === 'EXAMINING'}
                                     style={{
-                                        background: 'linear-gradient(135deg, var(--respiratory-blue), var(--respiratory-blue-dim))',
-                                        color: 'white', border: 'none',
-                                        boxShadow: '0 0 20px rgba(79, 195, 247, 0.3)',
+                                        background: 'var(--text-primary)',
+                                        color: 'var(--bg-secondary)', border: 'none',
                                     }}
                                 >
                                     <Play size={18} /> Start Lung Exam
@@ -105,20 +132,19 @@ export default function LungExam({ status }) {
                             <div className="exam-flow">
                                 <div style={{
                                     width: 120, height: 120, borderRadius: '50%',
-                                    background: 'var(--respiratory-blue-glow)', display: 'flex',
+                                    background: 'var(--bg-elevated)', border: '1px solid var(--respiratory-blue)', display: 'flex',
                                     alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-                                    boxShadow: '0 0 40px rgba(79, 195, 247, 0.3)',
                                 }}>
                                     <Wind size={56} color="var(--respiratory-blue)" className="breathe" />
                                 </div>
                                 <h3 className="exam-status" style={{ color: 'var(--respiratory-blue)' }}>Recording Lung Sounds...</h3>
                                 <p className="exam-progress-text">
-                                    Ask patient to breathe deeply and normally.
+                                    <strong>Check Hardware Display</strong> for signal monitoring.
                                 </p>
                                 <div className="progress-bar" style={{ maxWidth: 400, margin: '0 auto 20px' }}>
                                     <div className="progress-fill" style={{
                                         width: `${systemStatus?.examProgress || 0}%`,
-                                        background: 'linear-gradient(90deg, var(--respiratory-blue), var(--respiratory-blue-dim))',
+                                        background: 'var(--respiratory-blue)',
                                     }} />
                                 </div>
                                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -135,10 +161,10 @@ export default function LungExam({ status }) {
                                 <div className="exam-flow" style={{ paddingBottom: 16 }}>
                                     <div style={{
                                         width: 80, height: 80, borderRadius: '50%',
-                                        background: result.riskLevel === 'LOW' ? 'var(--success-green-glow)' : 'var(--warning-amber-glow)',
+                                        background: 'transparent', border: '2px solid var(--text-primary)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
                                     }}>
-                                        {getRiskIcon(result.riskLevel)}
+                                        <Wind size={40} color={result.riskLevel === 'LOW' ? 'var(--success-green)' : 'var(--respiratory-blue)'} />
                                     </div>
                                     <h3 className="exam-status">{result.diagnosis}</h3>
                                     <span className={`risk-badge ${result.riskLevel.toLowerCase()}`} style={{ marginTop: 8 }}>
@@ -156,7 +182,7 @@ export default function LungExam({ status }) {
                                             <div className="confidence-track">
                                                 <div className="confidence-fill" style={{
                                                     width: `${(conf * 100)}%`,
-                                                    background: classColors[cls] || 'var(--accent-teal)',
+                                                    background: cls !== 'Normal' ? 'var(--respiratory-blue)' : 'var(--success-green)',
                                                 }} />
                                             </div>
                                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', minWidth: 45 }}>
@@ -195,72 +221,28 @@ export default function LungExam({ status }) {
                     </div>
                 </div>
 
-                {/* Live Readings */}
-                <div>
-                    <div className="card" style={{ marginBottom: 20 }}>
-                        <div className="card-header">
-                            <h3 className="card-title"><Radio size={16} style={{ marginRight: 6 }} />Live Readings</h3>
-                        </div>
-                        <div className="card-body">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                <div className="sensor-card blue">
-                                    <div className="sensor-header">
-                                        <span className="sensor-name">Respiratory Rate</span>
-                                        <Wind size={16} color="var(--respiratory-blue)" />
-                                    </div>
-                                    <div className="sensor-value">{sensorData?.respiratoryRate || '--'} <span className="sensor-unit">/min</span></div>
-                                    <div className="sensor-bar">
-                                        <div className="sensor-bar-fill" style={{
-                                            width: `${Math.min(((sensorData?.respiratoryRate || 16) - 8) / 32 * 100, 100)}%`,
-                                            background: 'var(--respiratory-blue)',
-                                        }} />
-                                    </div>
-                                </div>
-                                <div className="sensor-card teal">
-                                    <div className="sensor-header">
-                                        <span className="sensor-name">SpO₂</span>
-                                    </div>
-                                    <div className="sensor-value">{sensorData?.spO2 || '--'}<span className="sensor-unit">%</span></div>
-                                </div>
-                                <div className="sensor-card amber">
-                                    <div className="sensor-header">
-                                        <span className="sensor-name">Audio Level</span>
-                                    </div>
-                                    <div className="sensor-value">{sensorData?.audioLevel || '0'}<span className="sensor-unit"> dB</span></div>
-                                    <div className="sensor-bar">
-                                        <div className="sensor-bar-fill" style={{
-                                            width: `${Math.min((sensorData?.audioLevel || 0) / 60 * 100, 100)}%`,
-                                            background: 'var(--warning-amber)',
-                                        }} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                {/* Lung Positioning Guide */}
+                <div className="card" style={{ gridColumn: '1 / -1' }}>
+                    <div className="card-header">
+                        <h3 className="card-title"><Stethoscope size={16} style={{ marginRight: 6 }} />Lung Auscultation Points</h3>
                     </div>
-
-                    {/* Lung Positioning Guide */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h3 className="card-title"><Stethoscope size={16} style={{ marginRight: 6 }} />Lung Auscultation Points</h3>
-                        </div>
-                        <div className="card-body" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {[
-                                    { name: 'Right Upper', desc: 'Above clavicle, anterior' },
-                                    { name: 'Left Upper', desc: 'Above clavicle, anterior' },
-                                    { name: 'Right Middle', desc: '4th intercostal space, anterior' },
-                                    { name: 'Left Middle', desc: '4th intercostal space, anterior' },
-                                    { name: 'Right Lower', desc: 'Below 6th rib, midaxillary' },
-                                    { name: 'Left Lower', desc: 'Below 6th rib, midaxillary' },
-                                ].map((p, i) => (
-                                    <div key={i} style={{
-                                        padding: '8px 12px', background: 'var(--bg-elevated)',
-                                        borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--respiratory-blue)',
-                                    }}>
-                                        <strong style={{ color: 'var(--text-primary)' }}>{p.name}</strong> — {p.desc}
-                                    </div>
-                                ))}
-                            </div>
+                    <div className="card-body" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                            {[
+                                { name: 'Right Upper', desc: 'Above clavicle, anterior' },
+                                { name: 'Left Upper', desc: 'Above clavicle, anterior' },
+                                { name: 'Right Middle', desc: '4th intercostal space, anterior' },
+                                { name: 'Left Middle', desc: '4th intercostal space, anterior' },
+                                { name: 'Right Lower', desc: 'Below 6th rib, midaxillary' },
+                                { name: 'Left Lower', desc: 'Below 6th rib, midaxillary' },
+                            ].map((p, i) => (
+                                <div key={i} style={{
+                                    padding: '8px 12px', background: 'var(--bg-elevated)',
+                                    borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--respiratory-blue)',
+                                }}>
+                                    <strong style={{ color: 'var(--text-primary)' }}>{p.name}</strong><br />{p.desc}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

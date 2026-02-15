@@ -31,7 +31,7 @@ export default function Sidebar({ systemStatus }) {
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
-                <div className="brand-icon"><Hospital size={24} /></div>
+                <img src="/favicon.svg" alt="Triage Station" style={{ height: 28, width: 28, marginRight: 12 }} />
                 <div className="brand-text">
                     <h2>Triage Station</h2>
                     <span>Smart Rural Healthcare</span>
