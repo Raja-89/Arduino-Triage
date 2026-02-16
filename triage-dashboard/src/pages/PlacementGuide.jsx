@@ -1,45 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Camera, HeartPulse, Wind, Target, RefreshCw, Stethoscope, CheckCircle2, Circle } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Camera, HeartPulse, Wind, Target, Stethoscope, CheckCircle2, Circle } from 'lucide-react';
 import TrackerModal from '../components/TrackerModal';
 
 export default function PlacementGuide() {
     const [activeTab, setActiveTab] = useState('heart');
-    const [trackerAvailable, setTrackerAvailable] = useState(false);
-    const [checkingTracker, setCheckingTracker] = useState(false);
     const [showTracker, setShowTracker] = useState(false);
-    const [trackerStatus, setTrackerStatus] = useState(null);
 
-    // Check if tracker server is available
-    const checkTracker = useCallback(async () => {
-        setCheckingTracker(true);
-        try {
-            const res = await fetch('/api/tracker/health');
-            const data = await res.json();
-            setTrackerAvailable(data.available);
-        } catch {
-            setTrackerAvailable(false);
-        }
-        setCheckingTracker(false);
-    }, []);
-
-    useEffect(() => { checkTracker(); }, [checkTracker]);
-
-    // Poll status for the sidebar info
-    useEffect(() => {
-        if (!showTracker) { setTrackerStatus(null); return; }
-        const poll = async () => {
-            try {
-                const res = await fetch('/api/tracker/status');
-                const data = await res.json();
-                setTrackerStatus(data);
-            } catch { /* ignore */ }
-        };
-        poll();
-        const id = setInterval(poll, 1000);
-        return () => clearInterval(id);
-    }, [showTracker]);
+    // Checklists state
+    const [visitedHeart, setVisitedHeart] = useState({});
+    const [visitedLung, setVisitedLung] = useState({});
 
     const isHeart = activeTab === 'heart';
+    const visited = isHeart ? visitedHeart : visitedLung;
 
     const heartPoints = [
         { name: 'Aortic', desc: '2nd right intercostal space, right sternal border' },
@@ -60,13 +32,54 @@ export default function PlacementGuide() {
     ];
 
     const points = isHeart ? heartPoints : lungPoints;
-    const visited = trackerStatus?.visited || {};
+    const totalCount = points.length;
+    const doneCount = Object.values(visited).filter(Boolean).length;
+
+    // Stable callback to prevent TrackerModal re-renders
+    const handleTrackerUpdate = useCallback((update) => {
+        if (update === 'RESET') {
+            // We need to know which tab is active inside the callback?
+            // Actually activeTab is a dependency.
+            // To avoid re-creation when activeTab changes (which is fine, modal re-renders then anyway),
+            // we just implement it normally.
+            // However, inside the modal loop, we want this to be stable if possible.
+            // Since 'activeTab' changes rarely, this is fine.
+            // But 'setVisited' depends on 'activeTab' in the render scope.
+            // Let's use functional updates carefully.
+
+            // Wait, if activeTab changes, 'setVisited' variable changes (it points to a different setter).
+            // So handleTrackerUpdate MUST change.
+            // The modal also receives 'mode={activeTab}', so it re-renders anyway.
+            // The goal is to avoid re-render when 'visited' changes if not needed?
+            // But 'visited' is passed to modal, so modal re-renders when visited changes.
+            // Is that a problem?
+            // If 'TrackerModal' re-renders, does proper memoization stop children?
+            // 'TrackerModal' re-render executes the function body.
+            // If 'videoRef.current' is stable, it acts fine.
+            // The only issue is if the EFFECT fires again.
+            // My previous fix ensured effect only fires on [isOpen, isLoading, mode].
+            // So even if 'visited' or 'onUpdate' changes, the camera does NOT restart.
+            // So this useCallback is good practice but the fix in TrackerModal was the key.
+        }
+
+        // We need to access the current setter based on activeTab
+        // We can't use the closure variable 'setVisited' safely if we want to be pure,
+        // but since we recreate this callback on activeTab change, it's correct.
+
+        if (activeTab === 'heart') {
+            if (update === 'RESET') setVisitedHeart({});
+            else setVisitedHeart(prev => ({ ...prev, ...update }));
+        } else {
+            if (update === 'RESET') setVisitedLung({});
+            else setVisitedLung(prev => ({ ...prev, ...update }));
+        }
+    }, [activeTab]);
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1><Target size={28} style={{ color: 'var(--text-primary)', verticalAlign: 'middle', marginRight: 10 }} />Stethoscope Placement Guide</h1>
-                <p>AI-powered body tracking with real-time stethoscope placement guidance</p>
+                <p>AI-powered body tracking with real-time stethoscope placement guidance (Browser Native)</p>
             </div>
 
             {/* Tab Toggle */}
@@ -94,54 +107,40 @@ export default function PlacementGuide() {
                 <div className="card">
                     <div className="card-header">
                         <h3 className="card-title"><Camera size={16} style={{ marginRight: 6 }} />Camera Tracker</h3>
-                        <span className={`risk-badge ${trackerAvailable ? 'low' : 'high'}`}>
+                        <span className="risk-badge low">
                             <span className="badge-dot" />
-                            {trackerAvailable ? 'Online' : 'Offline'}
+                            Online
                         </span>
                     </div>
                     <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                        {trackerAvailable ? (
-                            <>
-                                <div style={{
-                                    width: 80, height: 80, borderRadius: '50%',
-                                    background: 'var(--bg-elevated)', border: `2px solid ${isHeart ? 'var(--cardiac-red)' : 'var(--respiratory-blue)'}`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    margin: '0 auto 20px',
-                                }}>
-                                    {isHeart
-                                        ? <HeartPulse size={36} color="var(--cardiac-red)" className="heartbeat" />
-                                        : <Wind size={36} color="var(--respiratory-blue)" />
-                                    }
-                                </div>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>
-                                    {isHeart ? 'Heart' : 'Lung'} Placement Tracker
-                                </h3>
-                                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
-                                    Opens a fullscreen camera view with AI-guided auscultation points overlaid on your body.
-                                    Place your hand on each target to check it off.
-                                </p>
-                                <button
-                                    className="btn btn-primary btn-lg"
-                                    onClick={() => setShowTracker(true)}
-                                    style={{
-                                        background: isHeart ? 'var(--cardiac-red)' : 'var(--respiratory-blue)',
-                                        borderColor: isHeart ? 'var(--cardiac-red)' : 'var(--respiratory-blue)',
-                                    }}
-                                >
-                                    <Camera size={18} /> Open Camera
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <Camera size={48} color="var(--text-muted)" style={{ marginBottom: 16 }} />
-                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
-                                    Run <code style={{ background: 'var(--bg-elevated)', padding: '2px 8px', borderRadius: 4 }}>python tracker_server.py</code> to enable the camera tracker
-                                </p>
-                                <button className="btn btn-secondary" onClick={checkTracker} disabled={checkingTracker}>
-                                    <RefreshCw size={14} className={checkingTracker ? 'spin' : ''} /> {checkingTracker ? 'Checking...' : 'Retry Connection'}
-                                </button>
-                            </>
-                        )}
+                        <div style={{
+                            width: 80, height: 80, borderRadius: '50%',
+                            background: 'var(--bg-elevated)', border: `2px solid ${isHeart ? 'var(--cardiac-red)' : 'var(--respiratory-blue)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 20px',
+                        }}>
+                            {isHeart
+                                ? <HeartPulse size={36} color="var(--cardiac-red)" className="heartbeat" />
+                                : <Wind size={36} color="var(--respiratory-blue)" />
+                            }
+                        </div>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8 }}>
+                            {isHeart ? 'Heart' : 'Lung'} Placement Tracker
+                        </h3>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+                            Opens a fullscreen camera view with AI-guided auscultation points overlaid on your body.
+                            Place your hand on each target to check it off.
+                        </p>
+                        <button
+                            className="btn btn-primary btn-lg"
+                            onClick={() => setShowTracker(true)}
+                            style={{
+                                background: isHeart ? 'var(--cardiac-red)' : 'var(--respiratory-blue)',
+                                borderColor: isHeart ? 'var(--cardiac-red)' : 'var(--respiratory-blue)',
+                            }}
+                        >
+                            <Camera size={18} /> Open Camera
+                        </button>
                     </div>
                 </div>
 
@@ -151,17 +150,15 @@ export default function PlacementGuide() {
                         <h3 className="card-title"><Stethoscope size={16} style={{ marginRight: 6 }} />
                             {isHeart ? 'Cardiac' : 'Lung'} Auscultation Points
                         </h3>
-                        {trackerStatus && (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                {trackerStatus.done}/{trackerStatus.total} checked
-                            </span>
-                        )}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            {doneCount}/{totalCount} checked
+                        </span>
                     </div>
                     <div className="card-body">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {points.map((p, i) => {
-                                const key = Object.keys(visited).find(k => p.name.toLowerCase().includes(k.toLowerCase().split(' ')[0]));
-                                const checked = key ? visited[key] : false;
+                                // Match by name, simple exact match for now as keys are consistent
+                                const checked = visited[p.name];
                                 return (
                                     <div key={i} style={{
                                         display: 'flex', alignItems: 'center', gap: 10,
@@ -213,7 +210,13 @@ export default function PlacementGuide() {
             </div>
 
             {/* Fullscreen Tracker Modal */}
-            <TrackerModal isOpen={showTracker} mode={activeTab} onClose={() => setShowTracker(false)} />
+            <TrackerModal
+                isOpen={showTracker}
+                mode={activeTab}
+                onClose={() => setShowTracker(false)}
+                visited={visited}
+                onUpdate={handleTrackerUpdate}
+            />
         </div>
     );
 }
