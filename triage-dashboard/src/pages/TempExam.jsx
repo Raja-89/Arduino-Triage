@@ -5,6 +5,7 @@ import {
     Thermometer, Play, RotateCcw, CheckCircle,
     AlertTriangle, Info, Activity
 } from 'lucide-react';
+import ExamModal from '../components/ExamModal';
 
 export default function TempExam({ status }) {
     const { data: sensorData } = useApi('/sensor-data', 1000);
@@ -12,12 +13,16 @@ export default function TempExam({ status }) {
     const [temperature, setTemperature] = useState(null);
     const [progress, setProgress] = useState(0);
     const [assessment, setAssessment] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState('EXAMINING');
 
     const startMeasurement = () => {
         setExamState('measuring');
         setTemperature(null);
         setAssessment(null);
         setProgress(0);
+        setIsModalOpen(true);
+        setModalMode('EXAMINING');
 
         // Simulate a temperature measurement over ~3 seconds
         let prog = 0;
@@ -34,11 +39,13 @@ export default function TempExam({ status }) {
                         setTemperature(temp);
                         setAssessment(getAssessment(temp));
                         setExamState('result');
+                        setModalMode('RESULT');
                     })
                     .catch(() => {
                         setTemperature(36.5);
                         setAssessment(getAssessment(36.5));
                         setExamState('result');
+                        setModalMode('RESULT');
                     });
             }
         }, 120);
@@ -58,6 +65,7 @@ export default function TempExam({ status }) {
         setTemperature(null);
         setAssessment(null);
         setProgress(0);
+        setIsModalOpen(false);
     };
 
     return (
@@ -66,6 +74,14 @@ export default function TempExam({ status }) {
                 <h1><Thermometer size={28} style={{ color: 'var(--warning-amber)', verticalAlign: 'middle', marginRight: 10 }} />Temperature Measurement</h1>
                 <p>Body temperature assessment with automated risk classification</p>
             </div>
+
+            {/* Exam Modal - same as Heart/Lung pages */}
+            <ExamModal
+                isOpen={isModalOpen}
+                mode={modalMode}
+                onClose={() => setIsModalOpen(false)}
+                onViewResults={() => setIsModalOpen(false)}
+            />
 
             <div className="grid-2">
                 {/* Main Exam Control */}
